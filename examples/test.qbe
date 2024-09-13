@@ -1,0 +1,15 @@
+# export function w $add(w %v1, w %v2) {
+# @start
+# 	%r =w add %v1, %v2
+# 	ret %r
+# }
+
+export function w $main() {
+@start
+	storew $ptr, 65
+	call $putchar(w %coolptr)
+	ret 0
+}
+
+# data $stk = { z 30000 }
+data $ptr = { w 65 }

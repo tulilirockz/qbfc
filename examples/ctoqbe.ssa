@@ -1,0 +1,332 @@
+export
+function w $main() {
+@start.1
+	%.1 =l alloc4 30000
+	%.2 =l alloc4 4
+@body.2
+	storew 0, %.2
+	%.3 =w loadw %.2
+	%.4 =w add %.3, 1
+	storew %.4, %.2
+	%.5 =w loadw %.2
+	%.6 =l extsw %.5
+	%.7 =l mul %.6, 1
+	%.8 =l add %.1, %.7
+	%.9 =w loadsb %.8
+	%.10 =w extsb %.9
+	%.11 =w add %.10, 8
+	storeb %.11, %.8
+@while_cond.3
+	%.12 =w loadw %.2
+	%.13 =l extsw %.12
+	%.14 =l mul %.13, 1
+	%.15 =l add %.1, %.14
+	%.16 =w loadsb %.15
+	%.17 =w extsb %.16
+	%.18 =w cnew %.17, 0
+	jnz %.18, @while_body.4, @while_join.5
+@while_body.4
+	%.19 =w loadw %.2
+	%.20 =w sub %.19, 1
+	storew %.20, %.2
+	%.21 =w loadw %.2
+	%.22 =l extsw %.21
+	%.23 =l mul %.22, 1
+	%.24 =l add %.1, %.23
+	%.25 =w loadsb %.24
+	%.26 =w extsb %.25
+	%.27 =w add %.26, 9
+	storeb %.27, %.24
+	%.28 =w loadw %.2
+	%.29 =w add %.28, 1
+	storew %.29, %.2
+	%.30 =w loadw %.2
+	%.31 =l extsw %.30
+	%.32 =l mul %.31, 1
+	%.33 =l add %.1, %.32
+	%.34 =w loadsb %.33
+	%.35 =w extsb %.34
+	%.36 =w sub %.35, 1
+	storeb %.36, %.33
+	jmp @while_cond.3
+@while_join.5
+	%.37 =w loadw %.2
+	%.38 =w sub %.37, 1
+	storew %.38, %.2
+	%.39 =w loadw %.2
+	%.40 =w add %.39, 1
+	storew %.40, %.2
+	%.41 =w loadw %.2
+	%.42 =l extsw %.41
+	%.43 =l mul %.42, 1
+	%.44 =l add %.1, %.43
+	%.45 =w loadsb %.44
+	%.46 =w extsb %.45
+	%.47 =w add %.46, 4
+	storeb %.47, %.44
+@while_cond.6
+	%.48 =w loadw %.2
+	%.49 =l extsw %.48
+	%.50 =l mul %.49, 1
+	%.51 =l add %.1, %.50
+	%.52 =w loadsb %.51
+	%.53 =w extsb %.52
+	%.54 =w cnew %.53, 0
+	jnz %.54, @while_body.7, @while_join.8
+@while_body.7
+	%.55 =w loadw %.2
+	%.56 =w sub %.55, 1
+	storew %.56, %.2
+	%.57 =w loadw %.2
+	%.58 =l extsw %.57
+	%.59 =l mul %.58, 1
+	%.60 =l add %.1, %.59
+	%.61 =w loadsb %.60
+	%.62 =w extsb %.61
+	%.63 =w add %.62, 7
+	storeb %.63, %.60
+	%.64 =w loadw %.2
+	%.65 =w add %.64, 1
+	storew %.65, %.2
+	%.66 =w loadw %.2
+	%.67 =l extsw %.66
+	%.68 =l mul %.67, 1
+	%.69 =l add %.1, %.68
+	%.70 =w loadsb %.69
+	%.71 =w extsb %.70
+	%.72 =w sub %.71, 1
+	storeb %.72, %.69
+	jmp @while_cond.6
+@while_join.8
+	%.73 =w loadw %.2
+	%.74 =w sub %.73, 1
+	storew %.74, %.2
+	%.75 =w loadw %.2
+	%.76 =l extsw %.75
+	%.77 =l mul %.76, 1
+	%.78 =l add %.1, %.77
+	%.79 =w loadsb %.78
+	%.80 =w extsb %.79
+	%.81 =w add %.80, 1
+	storeb %.81, %.78
+	%.82 =w loadw %.2
+	%.83 =l extsw %.82
+	%.84 =l mul %.83, 1
+	%.85 =l add %.1, %.84
+	%.86 =w loadsb %.85
+	%.87 =w extsb %.86
+	%.88 =w add %.87, 7
+	storeb %.88, %.85
+	%.89 =w loadw %.2
+	%.90 =l extsw %.89
+	%.91 =l mul %.90, 1
+	%.92 =l add %.1, %.91
+	%.93 =w loadsb %.92
+	%.94 =w extsb %.93
+	%.95 =w add %.94, 3
+	storeb %.95, %.92
+	%.96 =w loadw %.2
+	%.97 =w add %.96, 2
+	storew %.97, %.2
+	%.98 =w loadw %.2
+	%.99 =l extsw %.98
+	%.100 =l mul %.99, 1
+	%.101 =l add %.1, %.100
+	%.102 =w loadsb %.101
+	%.103 =w extsb %.102
+	%.104 =w add %.103, 6
+	storeb %.104, %.101
+@while_cond.9
+	%.105 =w loadw %.2
+	%.106 =l extsw %.105
+	%.107 =l mul %.106, 1
+	%.108 =l add %.1, %.107
+	%.109 =w loadsb %.108
+	%.110 =w extsb %.109
+	%.111 =w cnew %.110, 0
+	jnz %.111, @while_body.10, @while_join.11
+@while_body.10
+	%.112 =w loadw %.2
+	%.113 =w sub %.112, 1
+	storew %.113, %.2
+	%.114 =w loadw %.2
+	%.115 =l extsw %.114
+	%.116 =l mul %.115, 1
+	%.117 =l add %.1, %.116
+	%.118 =w loadsb %.117
+	%.119 =w extsb %.118
+	%.120 =w add %.119, 7
+	storeb %.120, %.117
+	%.121 =w loadw %.2
+	%.122 =w add %.121, 1
+	storew %.122, %.2
+	%.123 =w loadw %.2
+	%.124 =l extsw %.123
+	%.125 =l mul %.124, 1
+	%.126 =l add %.1, %.125
+	%.127 =w loadsb %.126
+	%.128 =w extsb %.127
+	%.129 =w sub %.128, 1
+	storeb %.129, %.126
+	jmp @while_cond.9
+@while_join.11
+	%.130 =w loadw %.2
+	%.131 =w sub %.130, 1
+	storew %.131, %.2
+	%.132 =w loadw %.2
+	%.133 =l extsw %.132
+	%.134 =l mul %.133, 1
+	%.135 =l add %.1, %.134
+	%.136 =w loadsb %.135
+	%.137 =w extsb %.136
+	%.138 =w add %.137, 2
+	storeb %.138, %.135
+	%.139 =w loadw %.2
+	%.140 =l extsw %.139
+	%.141 =l mul %.140, 1
+	%.142 =l add %.1, %.141
+	%.143 =w loadsb %.142
+	%.144 =w extsb %.143
+	%.145 =w sub %.144, 12
+	storeb %.145, %.142
+	%.146 =w loadw %.2
+	%.147 =w add %.146, 1
+	storew %.147, %.2
+	%.148 =w loadw %.2
+	%.149 =l extsw %.148
+	%.150 =l mul %.149, 1
+	%.151 =l add %.1, %.150
+	%.152 =w loadsb %.151
+	%.153 =w extsb %.152
+	%.154 =w add %.153, 6
+	storeb %.154, %.151
+@while_cond.12
+	%.155 =w loadw %.2
+	%.156 =l extsw %.155
+	%.157 =l mul %.156, 1
+	%.158 =l add %.1, %.157
+	%.159 =w loadsb %.158
+	%.160 =w extsb %.159
+	%.161 =w cnew %.160, 0
+	jnz %.161, @while_body.13, @while_join.14
+@while_body.13
+	%.162 =w loadw %.2
+	%.163 =w sub %.162, 1
+	storew %.163, %.2
+	%.164 =w loadw %.2
+	%.165 =l extsw %.164
+	%.166 =l mul %.165, 1
+	%.167 =l add %.1, %.166
+	%.168 =w loadsb %.167
+	%.169 =w extsb %.168
+	%.170 =w add %.169, 9
+	storeb %.170, %.167
+	%.171 =w loadw %.2
+	%.172 =w add %.171, 1
+	storew %.172, %.2
+	%.173 =w loadw %.2
+	%.174 =l extsw %.173
+	%.175 =l mul %.174, 1
+	%.176 =l add %.1, %.175
+	%.177 =w loadsb %.176
+	%.178 =w extsb %.177
+	%.179 =w sub %.178, 1
+	storeb %.179, %.176
+	jmp @while_cond.12
+@while_join.14
+	%.180 =w loadw %.2
+	%.181 =w sub %.180, 1
+	storew %.181, %.2
+	%.182 =w loadw %.2
+	%.183 =l extsw %.182
+	%.184 =l mul %.183, 1
+	%.185 =l add %.1, %.184
+	%.186 =w loadsb %.185
+	%.187 =w extsb %.186
+	%.188 =w add %.187, 1
+	storeb %.188, %.185
+	%.189 =w loadw %.2
+	%.190 =w sub %.189, 1
+	storew %.190, %.2
+	%.191 =w loadw %.2
+	%.192 =l extsw %.191
+	%.193 =l mul %.192, 1
+	%.194 =l add %.1, %.193
+	%.195 =w loadsb %.194
+	%.196 =w extsb %.195
+	%.197 =w add %.196, 3
+	storeb %.197, %.194
+	%.198 =w loadw %.2
+	%.199 =l extsw %.198
+	%.200 =l mul %.199, 1
+	%.201 =l add %.1, %.200
+	%.202 =w loadsb %.201
+	%.203 =w extsb %.202
+	%.204 =w sub %.203, 6
+	storeb %.204, %.201
+	%.205 =w loadw %.2
+	%.206 =l extsw %.205
+	%.207 =l mul %.206, 1
+	%.208 =l add %.1, %.207
+	%.209 =w loadsb %.208
+	%.210 =w extsb %.209
+	%.211 =w sub %.210, 8
+	storeb %.211, %.208
+	%.212 =w loadw %.2
+	%.213 =w add %.212, 3
+	storew %.213, %.2
+	%.214 =w loadw %.2
+	%.215 =l extsw %.214
+	%.216 =l mul %.215, 1
+	%.217 =l add %.1, %.216
+	%.218 =w loadsb %.217
+	%.219 =w extsb %.218
+	%.220 =w add %.219, 4
+	storeb %.220, %.217
+@while_cond.15
+	%.221 =w loadw %.2
+	%.222 =l extsw %.221
+	%.223 =l mul %.222, 1
+	%.224 =l add %.1, %.223
+	%.225 =w loadsb %.224
+	%.226 =w extsb %.225
+	%.227 =w cnew %.226, 0
+	jnz %.227, @while_body.16, @while_join.17
+@while_body.16
+	%.228 =w loadw %.2
+	%.229 =w sub %.228, 1
+	storew %.229, %.2
+	%.230 =w loadw %.2
+	%.231 =l extsw %.230
+	%.232 =l mul %.231, 1
+	%.233 =l add %.1, %.232
+	%.234 =w loadsb %.233
+	%.235 =w extsb %.234
+	%.236 =w add %.235, 8
+	storeb %.236, %.233
+	%.237 =w loadw %.2
+	%.238 =w add %.237, 1
+	storew %.238, %.2
+	%.239 =w loadw %.2
+	%.240 =l extsw %.239
+	%.241 =l mul %.240, 1
+	%.242 =l add %.1, %.241
+	%.243 =w loadsb %.242
+	%.244 =w extsb %.243
+	%.245 =w sub %.244, 1
+	storeb %.245, %.242
+	jmp @while_cond.15
+@while_join.17
+	%.246 =w loadw %.2
+	%.247 =w sub %.246, 1
+	storew %.247, %.2
+	%.248 =w loadw %.2
+	%.249 =l extsw %.248
+	%.250 =l mul %.249, 1
+	%.251 =l add %.1, %.250
+	%.252 =w loadsb %.251
+	%.253 =w extsb %.252
+	%.254 =w add %.253, 1
+	storeb %.254, %.251
+	ret 0
+}

@@ -1,0 +1,68 @@
+export
+function w $main() {
+@start.1
+	%.1 =l alloc4 30000
+	%.2 =l alloc4 4
+@body.2
+	storew 0, %.2
+	%.3 =w loadw %.2
+	%.4 =l extsw %.3
+	%.5 =l mul %.4, 1
+	%.6 =l add %.1, %.5
+	storeb 10, %.6
+@while_cond.3
+	%.7 =w loadw %.2
+	%.8 =l extsw %.7
+	%.9 =l mul %.8, 1
+	%.10 =l add %.1, %.9
+	%.11 =w loadsb %.10
+	%.12 =w extsb %.11
+	%.13 =w cnew %.12, 0
+	jnz %.13, @while_body.4, @while_join.5
+@while_body.4
+	%.14 =w loadw %.2
+	%.15 =l extsw %.14
+	%.16 =l mul %.15, 1
+	%.40 =w extsb %.39
+	%.41 =w sub %.40, 1
+	storeb %.41, %.38
+@while_cond.6
+	%.42 =w loadw %.2
+	%.43 =l extsw %.42
+	%.44 =l mul %.43, 1
+	%.45 =l add %.1, %.44
+	%.46 =w loadsb %.45
+	%.47 =w extsb %.46
+	%.48 =w cnew %.47, 0
+	jnz %.48, @while_body.7, @while_join.8
+@while_body.7
+	%.49 =w loadw %.2
+	%.50 =l extsw %.49
+	%.51 =l mul %.50, 1
+	%.52 =l add %.1, %.51
+	%.53 =w loadsb %.52
+	%.54 =w extsb %.53
+	%.55 =w sub %.54, 1
+	storeb %.55, %.52
+	jmp @while_cond.6
+@while_join.8
+	%.56 =w loadw %.2
+	%.57 =l extsw %.56
+	%.58 =l mul %.57, 1
+	%.59 =l add %.1, %.58
+	%.60 =w loadsb %.59
+	%.61 =w extsb %.60
+	%.62 =w sub %.61, 1
+	storeb %.62, %.59
+	jmp @while_cond.3
+@while_join.5
+	%.63 =w loadw %.2
+	%.64 =l extsw %.63
+	%.65 =l mul %.64, 1
+	%.66 =l add %.1, %.65
+	%.67 =w loadsb %.66
+	%.68 =w extsb %.67
+	%.69 =w sub %.68, 1
+	storeb %.69, %.66
+	ret 0
+}
