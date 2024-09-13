@@ -45,37 +45,22 @@ function w $main() {
 	%.33 =w extsb %.32
 	%.34 =w sub %.33, 1
 	storeb %.34, %.31
-@while_cond.6
+	jmp @while_cond.3
+@while_join.5
 	%.35 =w loadw %.2
 	%.36 =l extsw %.35
 	%.37 =l mul %.36, 1
 	%.38 =l add %.1, %.37
 	%.39 =w loadsb %.38
 	%.40 =w extsb %.39
-	%.41 =w cnew %.40, 0
-	jnz %.41, @while_body.7, @while_join.8
-@while_body.7
+	%.41 =w add %.40, 50
+	storeb %.41, %.38
 	%.42 =w loadw %.2
-	%.43 =w sub %.42, 1
-	storew %.43, %.2
-	jmp @while_cond.6
-@while_join.8
-	jmp @while_cond.3
-@while_join.5
-	%.44 =w loadw %.2
-	%.45 =l extsw %.44
-	%.46 =l mul %.45, 1
-	%.47 =l add %.1, %.46
-	%.48 =w loadsb %.47
-	%.49 =w extsb %.48
-	%.50 =w add %.49, 50
-	storeb %.50, %.47
-	%.51 =w loadw %.2
-	%.52 =l extsw %.51
-	%.53 =l mul %.52, 1
-	%.54 =l add %.1, %.53
-	%.55 =w loadsb %.54
-	%.56 =w extsb %.55
-	%.57 =w call $putchar(w %.56)
+	%.43 =l extsw %.42
+	%.44 =l mul %.43, 1
+	%.45 =l add %.1, %.44
+	%.46 =w loadsb %.45
+	%.47 =w extsb %.46
+	%.48 =w call $putchar(w %.47)
 	ret 0
 }

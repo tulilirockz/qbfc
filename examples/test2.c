@@ -9,9 +9,6 @@ int main() {
     stack[pointer] += 10;
     pointer -= 1;
     stack[pointer] -= 1;
-    while(stack[pointer] != 0) {
-      pointer -= 1;
-    }
   }
   stack[pointer] += 50;
   putchar(stack[pointer]);
