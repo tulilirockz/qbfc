@@ -34,6 +34,10 @@ struct WhileLoop {
 
 fn main() {
     let args = Cli::parse();
+    if args.unroll_loops {
+        panic!("not implemented")
+    }
+
     let raw_file = fs::read_to_string(args.file).expect("Failed reading file");
     let mut raw_file_tokens: Vec<BrainfuckToken> = Vec::new();
 
@@ -56,15 +60,19 @@ fn main() {
     let mut index: usize = 0;
     while index < raw_file_tokens.len() {
         let currtoken = &raw_file_tokens[index];
-        if raw_file_tokens[index] == BrainfuckToken::LoopEnd
-            || raw_file_tokens[index] == BrainfuckToken::LoopStart
-        {
-            compressed_tokens.push(CompressedBrainfuckToken {
-                token: currtoken.to_owned(),
-                num: 1,
-            });
-            index += 1;
-            continue;
+        match raw_file_tokens[index] {
+            BrainfuckToken::Out
+            | BrainfuckToken::Input
+            | BrainfuckToken::LoopStart
+            | BrainfuckToken::LoopEnd => {
+                compressed_tokens.push(CompressedBrainfuckToken {
+                    token: currtoken.to_owned(),
+                    num: 1,
+                });
+                index += 1;
+                continue;
+            }
+            _ => (),
         }
 
         let mut numtokens: u64 = 0;
@@ -103,6 +111,11 @@ fn main() {
                     BrainfuckToken::LoopEnd => balance -= 1,
                     _ => (),
                 }
+
+                if balance == 0 {
+                    break;
+                }
+
                 subindex += 1;
             }
 
@@ -130,11 +143,13 @@ fn main() {
     let stack_pointer_name = String::from("stackptr");
 
     let mut blocks: Vec<qbe::Block> = vec![];
+    let mut blocksubidx = 1;
 
     let mut startblock = qbe::Block {
-        label: format!("start.{}", blocks.len() + 1),
+        label: format!("start.{}", blocksubidx),
         statements: vec![],
     };
+    blocksubidx += 1;
 
     startblock.assign_instr(
         qbe::Value::Temporary(stack_name.to_owned()),
@@ -150,9 +165,10 @@ fn main() {
     blocks.push(startblock);
 
     let mut mainbody = qbe::Block {
-        label: format!("body.{}", blocks.len() + 1),
+        label: format!("body.{}", blocksubidx),
         statements: vec![],
     };
+    blocksubidx += 1;
 
     mainbody.add_instr(qbe::Instr::Store(
         qbe::Type::Word,
@@ -374,6 +390,14 @@ fn main() {
                 ));
             }
             BrainfuckToken::Input => {
+                let getchar_place = varsubindex;
+                currblock.assign_instr(
+                    qbe::Value::Temporary(format!(".{}", varsubindex)),
+                    qbe::Type::Word,
+                    qbe::Instr::Call("getchar".to_owned(), vec![]),
+                );
+                varsubindex += 1;
+
                 currblock.assign_instr(
                     qbe::Value::Temporary(format!(".{}", varsubindex)),
                     qbe::Type::Word,
@@ -413,49 +437,10 @@ fn main() {
                 );
                 varsubindex += 1;
 
-                currblock.assign_instr(
-                    qbe::Value::Temporary(format!(".{}", varsubindex)),
-                    qbe::Type::Word,
-                    qbe::Instr::Load(
-                        qbe::Type::SingleByte,
-                        qbe::Value::Temporary(format!(".{}", varsubindex - 1)),
-                    ),
-                );
-                varsubindex += 1;
-
-                currblock.assign_instr(
-                    qbe::Value::Temporary(format!(".{}", varsubindex)),
-                    qbe::Type::Word,
-                    qbe::Instr::Ext(
-                        qbe::Type::SingleByte,
-                        qbe::Value::Temporary(format!(".{}", varsubindex - 1)),
-                    ),
-                );
-                varsubindex += 1;
-
-                for _ in 0..currtoken.num {
-                    currblock.assign_instr(
-                        qbe::Value::Temporary(format!(".{}", varsubindex)),
-                        qbe::Type::Word,
-                        qbe::Instr::Call("getchar".to_owned(), vec![]),
-                    );
-                }
-                varsubindex += 1;
-
-                currblock.assign_instr(
-                    qbe::Value::Temporary(format!(".{}", varsubindex)),
-                    qbe::Type::Word,
-                    qbe::Instr::Add(
-                        qbe::Value::Temporary(format!(".{}", varsubindex - 2)),
-                        qbe::Value::Temporary(format!(".{}", varsubindex - 1)),
-                    ),
-                );
-                varsubindex += 1;
-
                 currblock.add_instr(qbe::Instr::Store(
                     qbe::Type::Byte,
                     qbe::Value::Temporary(format!(".{}", stackinst)),
-                    qbe::Value::Temporary(format!(".{}", varsubindex - 1)),
+                    qbe::Value::Temporary(format!(".{}", getchar_place)),
                 ));
                 varsubindex += 1;
             }
@@ -532,9 +517,10 @@ fn main() {
             }
             BrainfuckToken::LoopStart => {
                 let mut condblock = qbe::Block {
-                    label: format!("while_cond.{}", blocks.len() + 1),
+                    label: format!("while_cond.{}", blocksubidx),
                     statements: vec![],
                 };
+                blocksubidx += 1;
 
                 condblock.assign_instr(
                     qbe::Value::Temporary(format!(".{}", varsubindex)),
@@ -604,32 +590,39 @@ fn main() {
                 varsubindex += 1;
                 condblock.add_instr(qbe::Instr::Jnz(
                     qbe::Value::Temporary(format!(".{}", varsubindex - 1)),
-                    format!("while_body.{}", blocks.len() + 1), // offset + 1
-                    format!("while_join.{}", blocks.len() + 1), // body
+                    format!("while_body.{}", blocksubidx),
+                    format!("while_join.{}", blocksubidx + 1), // body
                 ));
+                blocksubidx += 1; // register join
                 while_loop_tags.push(WhileLoop {
-                    join_num: blocks.len() + 1,
+                    join_num: blocksubidx - 2,
                 });
 
                 blocks.push(condblock);
                 let newblock = qbe::Block {
-                    label: format!("while_body.{}", blocks.len()),
+                    label: format!("while_body.{}", blocksubidx - 1),
                     statements: vec![],
                 };
+                blocksubidx += 1;
                 blocks.push(newblock);
                 loop_depth += 1;
-                currblockidx = blocks.len() - 1;
+                currblockidx += 2;
             }
             BrainfuckToken::LoopEnd => {
-                let currblock_name: Vec<&str> = currblock.label.rsplit(".").collect();
                 if loop_depth == 0 {
                     panic!("Unmatched loop end");
                 }
                 loop_depth -= 1;
 
-                currblock.add_instr(qbe::Instr::Jmp(format!("while_cond.{}", currblock_name[0])));
+                currblock.add_instr(qbe::Instr::Jmp(format!(
+                    "while_cond.{}",
+                    (while_loop_tags.last().unwrap().join_num)
+                )));
                 blocks.push(qbe::Block {
-                    label: format!("while_join.{}", while_loop_tags.last().unwrap().join_num),
+                    label: format!(
+                        "while_join.{}",
+                        while_loop_tags.last().unwrap().join_num + 2
+                    ),
                     statements: vec![],
                 });
                 while_loop_tags.pop();
@@ -640,10 +633,11 @@ fn main() {
     }
 
     const RETURN_SUCCESS: u64 = 0;
-    mainfunc.blocks.append(&mut blocks);
-    mainfunc
-        .add_block("end")
+    blocks
+        .last_mut()
+        .unwrap()
         .add_instr(qbe::Instr::Ret(Some(qbe::Value::Const(RETURN_SUCCESS))));
+    mainfunc.blocks.append(&mut blocks);
 
     let mut bf_program = qbe::Module::new();
     bf_program.add_function(mainfunc);
