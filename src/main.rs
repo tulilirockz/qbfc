@@ -1,16 +1,31 @@
-use clap::Parser;
+use clap::{ArgEnum, Parser};
 use std::fs;
+use std::io::Write;
+use std::process::{Command, Stdio};
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+enum OutputType {
+    Binary,
+    Qbe,
+    Ast,
+}
 
 #[derive(Parser)]
 struct Cli {
     file: String,
-    #[clap(short, long, default_value_t = false)]
+    #[clap(long, default_value_t = false)]
     no_check: bool,
+    #[clap(long, default_value_t = false)]
+    no_clean: bool,
+
+    #[clap(arg_enum)]
+    output: OutputType,
+
     #[clap(short, long, default_value_t = false)]
     unroll_loops: bool,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum BrainfuckToken {
     Next,
     Prev,
@@ -20,6 +35,21 @@ enum BrainfuckToken {
     Input,
     LoopStart,
     LoopEnd,
+}
+
+impl BrainfuckToken {
+    fn to_opposite(self: Self) -> Option<BrainfuckToken> {
+        match self {
+            BrainfuckToken::Next => Some(Self::Prev),
+            BrainfuckToken::Prev => Some(Self::Next),
+            BrainfuckToken::Add => Some(Self::Sub),
+            BrainfuckToken::Sub => Some(Self::Add),
+            BrainfuckToken::LoopStart => Some(Self::LoopEnd),
+            BrainfuckToken::LoopEnd => Some(Self::LoopStart),
+            BrainfuckToken::Input => None,
+            BrainfuckToken::Out => None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -35,7 +65,7 @@ struct WhileLoop {
 fn main() {
     let args = Cli::parse();
     if args.unroll_loops {
-        panic!("not implemented")
+        panic!("not implemented");
     }
 
     let raw_file = fs::read_to_string(args.file).expect("Failed reading file");
@@ -92,6 +122,32 @@ fn main() {
         });
 
         index += subindex - index;
+    }
+
+    // cleanup compressed tokens
+    if !args.no_clean {
+        let mut idx: usize = 0;
+        while idx < compressed_tokens.len() - 1 {
+            if !compressed_tokens[idx + 1].token.to_opposite().is_none()
+                && compressed_tokens[idx].token
+                    == compressed_tokens[idx + 1].token.to_opposite().unwrap()
+            {
+                if compressed_tokens[idx].num - compressed_tokens[idx + 1].num == 0 {
+                    compressed_tokens.remove(idx);
+                    compressed_tokens.remove(idx);
+                } else if compressed_tokens[idx].num - compressed_tokens[idx + 1].num > 0 {
+                    compressed_tokens[idx].num =
+                        compressed_tokens[idx].num - compressed_tokens[idx + 1].num;
+                    compressed_tokens.remove(idx + 1);
+                } else if compressed_tokens[idx + 1].num - compressed_tokens[idx].num > 0 {
+                    compressed_tokens[idx + 1].num =
+                        compressed_tokens[idx + 1].num - compressed_tokens[idx].num;
+                    compressed_tokens.remove(idx);
+                }
+                continue;
+            }
+            idx += 1;
+        }
     }
 
     // check for bracket mismatch
@@ -641,5 +697,29 @@ fn main() {
 
     let mut bf_program = qbe::Module::new();
     bf_program.add_function(mainfunc);
+
+    if !args.no_compile {
+        let qbeproc = Command::new("qbe")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failure finding QBE binary");
+        qbeproc
+            .stdin
+            .unwrap()
+            .write_all(format!("{}", bf_program).as_bytes())
+            .unwrap();
+        let ccproc = Command::new("clang")
+            .args(vec!["-OFast", "-x", "assembler", "-", "-v"])
+            .stdin(Stdio::from(qbeproc.stdout.unwrap()))
+            .spawn()
+            .expect("Failure finding any C compiler through cc");
+
+        println!(
+            "{}",
+            String::from_utf8(ccproc.wait_with_output().unwrap().stdout).unwrap()
+        );
+        return;
+    }
     println!("{}", bf_program);
 }
