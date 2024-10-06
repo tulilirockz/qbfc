@@ -1,28 +1,33 @@
-use clap::{ArgEnum, Parser};
+use clap::{Parser, ValueEnum};
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ArgEnum)]
+#[derive(ValueEnum, Clone, PartialEq)]
 enum OutputType {
     Binary,
     Qbe,
+    Asm,
     Ast,
 }
 
 #[derive(Parser)]
 struct Cli {
     file: String,
-    #[clap(long, default_value_t = false)]
+    #[clap(
+        long,
+        default_value_t = false,
+        help = "Do not check for valid brainfuck program"
+    )]
     no_check: bool,
-    #[clap(long, default_value_t = false)]
+    #[clap(long, default_value_t = false, help = "Do not clean the thing")]
     no_clean: bool,
 
-    #[clap(arg_enum)]
+    #[clap(short, long, default_value = "binary", help = "whatever")]
     output: OutputType,
 
-    #[clap(short, long, default_value_t = false)]
-    unroll_loops: bool,
+    #[clap(short, long, default_value = "binary", help = "whatever")]
+    result: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -64,9 +69,6 @@ struct WhileLoop {
 
 fn main() {
     let args = Cli::parse();
-    if args.unroll_loops {
-        panic!("not implemented");
-    }
 
     let raw_file = fs::read_to_string(args.file).expect("Failed reading file");
     let mut raw_file_tokens: Vec<BrainfuckToken> = Vec::new();
@@ -698,28 +700,50 @@ fn main() {
     let mut bf_program = qbe::Module::new();
     bf_program.add_function(mainfunc);
 
-    if !args.no_compile {
-        let qbeproc = Command::new("qbe")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failure finding QBE binary");
-        qbeproc
-            .stdin
-            .unwrap()
-            .write_all(format!("{}", bf_program).as_bytes())
-            .unwrap();
-        let ccproc = Command::new("clang")
-            .args(vec!["-OFast", "-x", "assembler", "-", "-v"])
-            .stdin(Stdio::from(qbeproc.stdout.unwrap()))
-            .spawn()
-            .expect("Failure finding any C compiler through cc");
+    match args.output {
+        OutputType::Ast => {
+            println!("{:#?}", bf_program)
+        }
+        OutputType::Qbe => {
+            println!("{}", bf_program)
+        }
+        OutputType::Asm => {
+            let mut qbeproc = Command::new("qbe")
+                .stdin(Stdio::piped())
+                .spawn()
+                .expect("Failure finding QBE binary");
+            qbeproc
+                .stdin
+                .as_mut()
+                .unwrap()
+                .write_all(format!("{}", bf_program).as_bytes())
+                .unwrap();
+            println!(
+                "{}",
+                String::from_utf8(qbeproc.wait_with_output().unwrap().stdout).unwrap()
+            )
+        }
+        OutputType::Binary => {
+            let qbeproc = Command::new("qbe")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("Failure finding QBE binary");
+            qbeproc
+                .stdin
+                .unwrap()
+                .write_all(format!("{}", bf_program).as_bytes())
+                .unwrap();
+            let ccproc = Command::new("clang")
+                .args(vec!["-OFast", "-x", "assembler", "-", "-v", "-static"])
+                .stdin(Stdio::from(qbeproc.stdout.unwrap()))
+                .spawn()
+                .expect("Failure finding any C compiler through cc");
 
-        println!(
-            "{}",
-            String::from_utf8(ccproc.wait_with_output().unwrap().stdout).unwrap()
-        );
-        return;
+            println!(
+                "{}",
+                String::from_utf8(ccproc.wait_with_output().unwrap().stdout).unwrap()
+            );
+        }
     }
-    println!("{}", bf_program);
 }
