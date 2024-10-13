@@ -2,6 +2,8 @@ use clap::{Parser, ValueEnum};
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
+mod token;
+use token::*;
 
 #[derive(ValueEnum, Clone, PartialEq)]
 enum OutputType {
@@ -20,137 +22,25 @@ struct Cli {
         help = "Do not check for valid brainfuck program"
     )]
     no_check: bool,
-    #[clap(long, default_value_t = false, help = "Do not clean the thing")]
-    no_clean: bool,
 
     #[clap(short, long, default_value = "binary", help = "whatever")]
-    output: OutputType,
+    r#type: OutputType,
 
     #[clap(short, long, default_value = "binary", help = "whatever")]
-    result: String,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum BrainfuckToken {
-    Next,
-    Prev,
-    Add,
-    Sub,
-    Out,
-    Input,
-    LoopStart,
-    LoopEnd,
-}
-
-impl BrainfuckToken {
-    fn to_opposite(self: Self) -> Option<BrainfuckToken> {
-        match self {
-            BrainfuckToken::Next => Some(Self::Prev),
-            BrainfuckToken::Prev => Some(Self::Next),
-            BrainfuckToken::Add => Some(Self::Sub),
-            BrainfuckToken::Sub => Some(Self::Add),
-            BrainfuckToken::LoopStart => Some(Self::LoopEnd),
-            BrainfuckToken::LoopEnd => Some(Self::LoopStart),
-            BrainfuckToken::Input => None,
-            BrainfuckToken::Out => None,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct CompressedBrainfuckToken {
-    token: BrainfuckToken,
-    num: u64,
-}
-
-struct WhileLoop {
-    join_num: usize,
+    output: String,
 }
 
 fn main() {
     let args = Cli::parse();
 
-    let raw_file = fs::read_to_string(args.file).expect("Failed reading file");
-    let mut raw_file_tokens: Vec<BrainfuckToken> = Vec::new();
-
-    for char in raw_file.into_bytes() {
-        raw_file_tokens.push(match char {
-            b'>' => BrainfuckToken::Next,
-            b'<' => BrainfuckToken::Prev,
-            b'+' => BrainfuckToken::Add,
-            b'-' => BrainfuckToken::Sub,
-            b'.' => BrainfuckToken::Out,
-            b',' => BrainfuckToken::Input,
-            b'[' => BrainfuckToken::LoopStart,
-            b']' => BrainfuckToken::LoopEnd,
-            _ => continue,
-        });
-    }
-
-    // This is much easier to parse later
-    let mut compressed_tokens: Vec<CompressedBrainfuckToken> = Vec::new();
-    let mut index: usize = 0;
-    while index < raw_file_tokens.len() {
-        let currtoken = &raw_file_tokens[index];
-        match raw_file_tokens[index] {
-            BrainfuckToken::Out
-            | BrainfuckToken::Input
-            | BrainfuckToken::LoopStart
-            | BrainfuckToken::LoopEnd => {
-                compressed_tokens.push(CompressedBrainfuckToken {
-                    token: currtoken.to_owned(),
-                    num: 1,
-                });
-                index += 1;
-                continue;
-            }
-            _ => (),
-        }
-
-        let mut numtokens: u64 = 0;
-        let mut subindex: usize = index;
-        while currtoken == &raw_file_tokens[subindex] {
-            numtokens += 1;
-            subindex += 1;
-
-            if subindex == raw_file_tokens.len() {
-                break;
-            }
-        }
-
-        compressed_tokens.push(CompressedBrainfuckToken {
-            token: currtoken.to_owned(),
-            num: numtokens,
-        });
-
-        index += subindex - index;
-    }
-
-    // cleanup compressed tokens
-    if !args.no_clean {
-        let mut idx: usize = 0;
-        while idx < compressed_tokens.len() - 1 {
-            if !compressed_tokens[idx + 1].token.to_opposite().is_none()
-                && compressed_tokens[idx].token
-                    == compressed_tokens[idx + 1].token.to_opposite().unwrap()
-            {
-                if compressed_tokens[idx].num - compressed_tokens[idx + 1].num == 0 {
-                    compressed_tokens.remove(idx);
-                    compressed_tokens.remove(idx);
-                } else if compressed_tokens[idx].num - compressed_tokens[idx + 1].num > 0 {
-                    compressed_tokens[idx].num =
-                        compressed_tokens[idx].num - compressed_tokens[idx + 1].num;
-                    compressed_tokens.remove(idx + 1);
-                } else if compressed_tokens[idx + 1].num - compressed_tokens[idx].num > 0 {
-                    compressed_tokens[idx + 1].num =
-                        compressed_tokens[idx + 1].num - compressed_tokens[idx].num;
-                    compressed_tokens.remove(idx);
-                }
-                continue;
-            }
-            idx += 1;
-        }
-    }
+    let compressed_tokens: Vec<CompressedBrainfuckToken> = fs::read(args.file)
+        .expect("whatevs")
+        .iter()
+        .filter(|x| x.is_valid_token())
+        .map(|x| (*x).into())
+        .collect::<Vec<_>>()
+        .compress()
+        .clean();
 
     // check for bracket mismatch
     if !args.no_check {
@@ -236,7 +126,7 @@ fn main() {
     blocks.push(mainbody);
 
     let mut loop_depth = 0;
-    let mut while_loop_tags: Vec<WhileLoop> = vec![];
+    let mut while_loop_tags: Vec<i32> = vec![];
     const MUL_ROUNDING_VALUE: u64 = 1;
     let mut index: usize = 0;
     let mut varsubindex = 0;
@@ -652,9 +542,7 @@ fn main() {
                     format!("while_join.{}", blocksubidx + 1), // body
                 ));
                 blocksubidx += 1; // register join
-                while_loop_tags.push(WhileLoop {
-                    join_num: blocksubidx - 2,
-                });
+                while_loop_tags.push(blocksubidx - 2);
 
                 blocks.push(condblock);
                 let newblock = qbe::Block {
@@ -674,18 +562,16 @@ fn main() {
 
                 currblock.add_instr(qbe::Instr::Jmp(format!(
                     "while_cond.{}",
-                    (while_loop_tags.last().unwrap().join_num)
+                    (while_loop_tags.last().unwrap())
                 )));
                 blocks.push(qbe::Block {
-                    label: format!(
-                        "while_join.{}",
-                        while_loop_tags.last().unwrap().join_num + 2
-                    ),
+                    label: format!("while_join.{}", while_loop_tags.last().unwrap() + 2),
                     statements: vec![],
                 });
                 while_loop_tags.pop();
                 currblockidx += 1;
             }
+            BrainfuckToken::Invalid => panic!("Invalid token found"),
         }
         index += 1;
     }
@@ -700,7 +586,7 @@ fn main() {
     let mut bf_program = qbe::Module::new();
     bf_program.add_function(mainfunc);
 
-    match args.output {
+    match args.r#type {
         OutputType::Ast => {
             println!("{:#?}", bf_program)
         }
@@ -734,7 +620,7 @@ fn main() {
                 .unwrap()
                 .write_all(format!("{}", bf_program).as_bytes())
                 .unwrap();
-            let ccproc = Command::new("clang")
+            let ccproc = Command::new("cc")
                 .args(vec!["-OFast", "-x", "assembler", "-", "-v", "-static"])
                 .stdin(Stdio::from(qbeproc.stdout.unwrap()))
                 .spawn()
