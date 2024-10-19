@@ -33,14 +33,43 @@ impl BrainfuckToken {
     }
 }
 
-impl ValidTokenCollection for Vec<CompressableTokenCollection> {
-    fn validate(self: Self) -> bool {
-        false
-    }
+pub trait ValidTokenCollection {
+    fn validate(self: &Self) -> bool;
 }
 
-pub trait ValidTokenCollection {
-    fn validate(self: Self) -> bool;
+impl ValidTokenCollection for Vec<CompressedBrainfuckToken> {
+    fn validate(self: &Self) -> bool {
+        let mut index: usize = 0;
+        while index < self.len() {
+            if self[index].token != BrainfuckToken::LoopStart {
+                index += 1;
+                continue;
+            }
+
+            let mut balance = 0;
+            let mut subindex: usize = index;
+            while subindex < self.len() {
+                match self[subindex].token {
+                    BrainfuckToken::LoopStart => balance += 1,
+                    BrainfuckToken::LoopEnd => balance -= 1,
+                    _ => (),
+                }
+
+                if balance == 0 {
+                    break;
+                }
+
+                subindex += 1;
+            }
+
+            if balance != 0 {
+                return false;
+            }
+
+            index += 1;
+        }
+        true
+    }
 }
 
 pub trait CompressableTokenCollection {

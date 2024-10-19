@@ -2,7 +2,9 @@ use clap::{Parser, ValueEnum};
 use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
+mod ir;
 mod token;
+use ir::*;
 use token::*;
 
 #[derive(ValueEnum, Clone, PartialEq)]
@@ -23,10 +25,20 @@ struct Cli {
     )]
     no_check: bool,
 
-    #[clap(short, long, default_value = "binary", help = "whatever")]
+    #[clap(
+        short,
+        long,
+        default_value = "binary",
+        help = "Type of output, either AST, ASM, SST or BINARY"
+    )]
     r#type: OutputType,
 
-    #[clap(short, long, default_value = "binary", help = "whatever")]
+    #[clap(
+        short,
+        long,
+        default_value = "binary",
+        help = "Where the output will be put, - for stdout"
+    )]
     output: String,
 }
 
@@ -34,7 +46,7 @@ fn main() {
     let args = Cli::parse();
 
     let compressed_tokens: Vec<CompressedBrainfuckToken> = fs::read(args.file)
-        .expect("whatevs")
+        .expect("Failed reading file")
         .iter()
         .filter(|x| x.is_valid_token())
         .map(|x| (*x).into())
@@ -42,40 +54,12 @@ fn main() {
         .compress()
         .clean();
 
-    // check for bracket mismatch
     if !args.no_check {
-        let mut index: usize = 0;
-        while index < compressed_tokens.len() {
-            if compressed_tokens[index].token != BrainfuckToken::LoopStart {
-                index += 1;
-                continue;
-            }
-
-            let mut balance = 0;
-            let mut subindex: usize = index;
-            while subindex < compressed_tokens.len() {
-                match compressed_tokens[subindex].token {
-                    BrainfuckToken::LoopStart => balance += 1,
-                    BrainfuckToken::LoopEnd => balance -= 1,
-                    _ => (),
-                }
-
-                if balance == 0 {
-                    break;
-                }
-
-                subindex += 1;
-            }
-
-            if balance != 0 {
-                panic!("Bracket mismatch!");
-            }
-
-            index += 1;
+        if !compressed_tokens.validate() {
+            panic!("Failed due to bracket mismatch");
         }
     }
 
-    // initialize QBE stack + pointer for BF program
     let mut mainfunc = qbe::Function::new(
         qbe::Linkage {
             exported: true,
@@ -588,14 +572,23 @@ fn main() {
 
     match args.r#type {
         OutputType::Ast => {
-            println!("{:#?}", bf_program)
+            if args.output == "-" {
+                println!("{:#?}", bf_program);
+                return;
+            }
+            std::fs::write(args.output, format!("{:#?}", bf_program)).expect("Failed writing file");
         }
         OutputType::Qbe => {
-            println!("{}", bf_program)
+            if args.output == "-" {
+                println!("{}", bf_program);
+                return;
+            }
+            std::fs::write(args.output, format!("{}", bf_program)).expect("Failed writing file");
         }
         OutputType::Asm => {
             let mut qbeproc = Command::new("qbe")
                 .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
                 .spawn()
                 .expect("Failure finding QBE binary");
             qbeproc
@@ -604,10 +597,22 @@ fn main() {
                 .unwrap()
                 .write_all(format!("{}", bf_program).as_bytes())
                 .unwrap();
-            println!(
-                "{}",
-                String::from_utf8(qbeproc.wait_with_output().unwrap().stdout).unwrap()
+
+            if args.output == "-" {
+                println!(
+                    "{}",
+                    String::from_utf8(qbeproc.wait_with_output().unwrap().stdout).unwrap()
+                );
+                return;
+            }
+            std::fs::write(
+                args.output,
+                format!(
+                    "{}",
+                    String::from_utf8(qbeproc.wait_with_output().unwrap().stdout).unwrap()
+                ),
             )
+            .expect("Failed writing file");
         }
         OutputType::Binary => {
             let qbeproc = Command::new("qbe")
@@ -621,8 +626,17 @@ fn main() {
                 .write_all(format!("{}", bf_program).as_bytes())
                 .unwrap();
             let ccproc = Command::new("cc")
-                .args(vec!["-OFast", "-x", "assembler", "-", "-v", "-static"])
+                .stdout(Stdio::piped())
                 .stdin(Stdio::from(qbeproc.stdout.unwrap()))
+                .args(vec![
+                    "-OFast",
+                    "-x",
+                    "assembler",
+                    "-",
+                    "-v",
+                    "-o",
+                    args.output.as_str(),
+                ])
                 .spawn()
                 .expect("Failure finding any C compiler through cc");
 
@@ -630,6 +644,7 @@ fn main() {
                 "{}",
                 String::from_utf8(ccproc.wait_with_output().unwrap().stdout).unwrap()
             );
+            return;
         }
     }
 }
